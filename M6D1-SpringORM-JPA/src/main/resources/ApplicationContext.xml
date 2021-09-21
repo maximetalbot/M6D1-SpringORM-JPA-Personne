@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Definition des namespaces -->
+<!-- Bean, contex et transaction(tx) -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  
+	xmlns:context="http://www.springframework.org/schema/context" 
+	xmlns:tx="http://www.springframework.org/schema/tx"
+    
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+		http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context-4.0.xsd
+		http://www.springframework.org/schema/tx
+		http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
+  
+  <!-- Je vais travailler avec des annotations dans les packages suivant -->
+	<context:annotation-config/>
+	<context:component-scan base-package="fr.eni.spring.service"/>
+	<context:component-scan base-package="fr.eni.spring.dao"/>
+  
+  <!-- Bean pour injecter l'entity manager  -->
+	<bean class="org.springframework.orm.jpa.support.PersistenceAnnotationBeanPostProcessor" />
+	<!-- Bean pour indiquer qu'on va faire appeller a des fichiers properties externes -->
+	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer" >
+		<property name="location" value="classpath:datasource.properties" />
+	</bean>
+  
+  
+  <!-- Cas où on aurait plusieurs fichiers properties -->
+  <!-- 
+	<bean class="org.springframework.bean.factory.config.PropertyPlaceholderConfigurer" >
+		<property name="location">
+			<list>
+				<value>classpath:datasourceMysql.properties</value>
+				<value>classpath:datasourceOracle.properties</value>
+			</list>
+		</property>
+	</bean>
+   -->
+
+	<!-- Déclaration de la datasource -->
+	<bean id="datasource" class="org.apache.commons.dbcp2.BasicDataSource" destroy-method="close">
+	<!-- les propriétés sont récupérées dans le fichier datasource.properties -->
+		<property name="driverClassName" value="${driver}"/>
+		<property name="url" value="${url}"/>
+		<property name="username" value="${user}"/>
+		<property name="password" value="${pass}"/>
+	</bean>
+
+	<!-- Déclaration du bean d'Entity Manager Factory -->
+	<bean id="emf" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+		<!-- Déclaration des packages pouvant contenir des entity -->
+		<property name="packagesToScan">
+			<list>
+				<value>fr.eni.spring.orm.bean</value>
+			</list>
+		</property>
+		<!-- Référence à la DataSource souhaitée -->
+		<property name="dataSource" ref="datasource"/>
+		
+		<!-- Indication de l'utilisation de Hibernate avec propriétés -->
+		<property name="jpaVendorAdapter">
+			<bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter">
+				<property name="showSql" value="false"/>
+				<property name="database" value="MYSQL"/>
+			</bean>
+		</property>
+		
+		<!-- au besoin, on pourrait créer une nouvelle table comme suit -->
+		<!-- 
+		<property name="jpaProperties">
+			<prop key="hibernate.hbm2ddl.auto">create</prop>
+			create | validate | update | create-drop
+		</property>
+		-->
+	</bean>
+	
+	<!-- Définition du gestionnaire de transation géré par spring -->
+	<bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+		<!-- en référence à l'emf définit plus haut -->
+		<property name="entityManagerFactory" ref="emf" />
+	</bean>
+	
+	<!-- On va utiliser des annotations de type transactionnelles -->
+	<tx:annotation-driven transaction-manager="transactionManager"/>
+</beans>
